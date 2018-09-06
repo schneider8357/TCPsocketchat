@@ -7,8 +7,7 @@ import _thread
 def receber(cliente):
 	while True:
 		msg = cliente.recv(1024).decode('utf-8')
-		print('\n{0}\nDigite sua mensagem:'.format(msg))
-		if msg == '/exit': break
+		print('\n{0}\nDigite sua mensagem:'.format(msg), end='')
 	cliente.close()
 
 def enviar(cliente):
@@ -16,7 +15,6 @@ def enviar(cliente):
 		msg = input('Digite a mensagem: ')
 		msgf = msg.encode('utf-8')
 		cliente.send(msgf)
-		print(msg)
 		if msg == '/exit': break
 	cliente.close()
 
