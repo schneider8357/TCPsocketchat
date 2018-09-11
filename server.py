@@ -18,6 +18,16 @@ def envioBroadcast(msg, remetente):
 		con.send(msgf)
 	_thread.exit()
 
+def agora():
+	now = datetime.now()
+	return '{0}:{1} {2}/{3}/{4}'.format(now.hour, now.minute, now.day, now.month, now.year)
+
+def mostrarConexoes():
+	print('{0} <servidor> Número de clientes conectados: {1}'.format(agora(),len(conexoes)))
+	if len(conexoes) > 0:
+		for cliente in logins:
+			print('{0} <servidor> Login: {1} Cliente: {2} Conectado desde: {3}'.format(agora(),logins[cliente],cliente,conexoes[cliente][1]))
+
 def setLogin(con, cliente):
 	msg = 'Login: '
 	msgf = msg.encode('utf-8')
@@ -36,33 +46,26 @@ def setLogin(con, cliente):
 		login = con.recv(1024).decode('utf-8')
 	logins[cliente] = login
 	now = datetime.now()
-	conexoes[cliente] = tuple([con,'{0}:{1} {2}/{3}/{4}'.format(now.hour, now.minute, now.day, now.month, now.year)])
-	print(logins)
+	conexoes[cliente] = tuple([con,agora()])
 
 def inicioConexao(con, cliente):
 	setLogin(con, cliente)
-	msg = '{0}:{1} {2}/{3}/{4} <servidor> {5} entrou!'.format(now.hour,now.minute,now.day,now.month,now.year,logins[cliente],cliente)
+	msg = '{0} <servidor> {1} entrou.'.format(agora(),logins[cliente])
 	_thread.start_new_thread(envioBroadcast, tuple([msg, cliente]))
-	print('{0}:{1} {2}/{3}/{4} <servidor> {5} {6} entrou.'.format(now.hour,now.minute,now.day,now.month,now.year,logins[cliente],cliente))
-	print('\nNúmero de clientes conectados: {0}'.format(len(conexoes)))
-	if len(logins) > 0:
-		for cliente in logins:
-			print('Login: {0} Cliente: {1} Conectado desde: {2}'.format(logins[cliente],cliente,conexoes[cliente][1]))
+	print('{0} <servidor> {1} {2} entrou.'.format(agora(),logins[cliente],cliente))
+	mostrarConexoes()
 	while True:
 		msg = con.recv(1024).decode('utf-8')
 		if msg == '/exit': break
-		print('{0}:{1} {2}/{3}/{4} {5} {6}: {7}'.format(now.hour, now.minute, now.day, now.month, now.year,logins[cliente],cliente,msg))
-		msg = '{0}:{1} {2}/{3}/{4} {5} diz: {6}'.format(now.hour,now.minute,now.day,now.month,now.year,logins[cliente],msg)
+		print('{0} {1} {2}: {3}'.format(agora(),logins[cliente],cliente,msg))
+		msg = '{0} {1} diz: {2}'.format(agora(),logins[cliente],msg)
 		_thread.start_new_thread(envioBroadcast, tuple([msg, cliente]))
-	msg = '{0}:{1} {2}/{3}/{4} <servidor> {5} saiu.'.format(now.hour,now.minute,now.day,now.month,now.year,logins[cliente],cliente)
-	_thread.start_new_thread(envioBroadcast, tuple([msg, cliente]))
-	print('{0}:{1} {2}/{3}/{4} <servidor> {5} {6} saiu.'.format(now.hour,now.minute,now.day,now.month,now.year,logins[cliente],cliente))
+	msg = '{0} <servidor> {1} saiu.'.format(agora(),logins[cliente],cliente)
+	print('{0} <servidor> {1} {2} saiu.'.format(agora(),logins[cliente],cliente))
 	del logins[cliente]
 	del conexoes[cliente]
-	print('\nNúmero de clientes conectados: {0}'.format(len(conexoes)))
-	if len(conexoes) > 0:
-		for cliente in logins:
-			print('Login: {0} Cliente: {1} Conectado desde: {2}'.format(logins[cliente],cliente,conexoes[cliente][1]))
+	mostrarConexoes()
+	_thread.start_new_thread(envioBroadcast, tuple([msg, cliente]))
 	con.close()
 	_thread.exit()
 
@@ -82,7 +85,7 @@ print('\nServidor TCP-THREAD iniciado no IP', HOST, 'na porta', PORT)
 
 while True:
 	con, cliente = server.accept()
-	print('\nNova thread iniciada para essa conexão')
+	print('{0} <servidor> nova thread iniciada para o cliente {1}'.format(agora(),cliente))
 	_thread.start_new_thread(inicioConexao, tuple([con, cliente]))
 
 server.close()
