@@ -81,7 +81,7 @@ def setLogin(con, cliente):
 		msgf = msg.encode('utf-8')
 		con.send(msgf)
 		senha = con.recv(1024).decode('utf-8')
-		
+	login = msg[9:]
 	logins[cliente] = login
 	now = datetime.now()
 	conexoes[cliente] = tuple([con,agora()])
