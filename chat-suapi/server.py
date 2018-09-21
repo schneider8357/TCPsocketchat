@@ -8,6 +8,7 @@ import json
 import requests
 
 
+HOST = '192.168.0.26'
 urls = { 'token':'https://suap.ifrn.edu.br/api/v2/autenticacao/token/',
 		 'dados':'https://suap.ifrn.edu.br/api/v2/minhas-informacoes/meus-dados/'}
 logins = {}	# { cliente : login }
@@ -79,8 +80,7 @@ def mostrarConexoes(i): # Exibe todos os clientes conectados. Quando i == 1, a f
 		logAdd('{0} <servidor> Número de clientes conectados: {1}'.format(agora(),len(conexoes)))
 		# Caso queira que a cada conexão feita ou desfeita sejam exibidos todos os clientes  ativos, descomente as linhas abaixo.
 		#if len(conexoes):
-		#for cliente in logins:
-		#logAdd('{0} <servidor> Login: {1} Cliente: {2} Conectado desde: {3}'.format(agora(), logins[cliente], cliente, conexoes[cliente][1]))
+		#	for cliente in logins: logAdd('{0} <servidor> Login: {1} Cliente: {2} Conectado desde: {3}'.format(agora(), logins[cliente], cliente, conexoes[cliente][1]))
 
 def getToken(autenticacao): # Retorna o token para acesso ao SUAP.
 	response = requests.post(urls['token'], data=autenticacao)
@@ -100,7 +100,7 @@ def autentica(login,senha): # Define o login do cliente de acordo com o nome no 
 	informacoes = json.loads(getInformacoes(cabecalho))
 	login = informacoes['nome_usual'].replace(' ','_')
 	if login in logins.values():
-		return 'O usuário já está logado! Tente novamente!\nLogin: '
+		return 'O usuário já está logado! Tente novamente!\nMatrícula: ', login
 	else:
 		return '/loginok', login # '/loginok seu_login_aqui' é a mensagem que confirma que o login foi efetuado com sucesso. 
 
@@ -122,7 +122,7 @@ def setLogin(con, cliente): # Conversa com a aplicação cliente para autenticá
 			try:
 				msg, login = autentica(login,senha)
 			except:
-				msg = 'Usuário ou senha incorretos.\nMatrícula: '
+				msg = 'Não foi possível realizar o login.\nVerifique se seu usuário e senha estão corretos.\nMatrícula: '
 		con.send(msg.encode('utf-8'))
 		if msg == '/loginok': break
 		login = con.recv(1024).decode('utf-8')
@@ -174,7 +174,7 @@ def fimConexao(con, cliente):
 #MAIN
 
 os.system('clear')
-HOST = '127.0.0.1'
+
 PORT = str(input('Digite o número de porta em que o servidor TCP irá rodar (default = 50000): '))
 if (not PORT.isdigit()) or (int(PORT) > 65535) or (int(PORT) < 1024): PORT = '50000'
 PORT = int(PORT)

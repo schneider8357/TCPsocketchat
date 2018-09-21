@@ -5,7 +5,7 @@ import socket
 import _thread
 import getpass
 
-
+HOST = '192.168.0.26'
 
 def ajuda():
 	print('-----> Para sair, use o comando \'/exit\'')
@@ -61,9 +61,9 @@ def setLogin():
 	return login
 
 #MAIN
+
 os.system('clear')
 
-HOST = '127.0.0.1'
 PORT = str(input('Digite o número de porta em que o cliente TCP irá rodar (default = 50000): '))
 if (not PORT.isdigit()) or (int(PORT) > 65535) or (int(PORT) < 1024): PORT = '50000'
 PORT = int(PORT)
