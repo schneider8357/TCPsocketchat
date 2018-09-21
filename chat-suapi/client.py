@@ -10,6 +10,7 @@ def receber(cliente):
 		msg = cliente.recv(1024).decode('utf-8')
 		print('\n{0}\nDigite a mensagem: '.format(msg), end='')
 	cliente.close()
+	_thread.exit()
 
 def enviar(cliente):
 	while True:
