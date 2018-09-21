@@ -68,7 +68,7 @@ def agora(): # Retorna a data e hora atuais.
 	now = datetime.now()
 	return '{0:0=2d}:{1:0=2d} {2:0=2d}/{3:0=2d}/{4}'.format(now.hour, now.minute, now.day, now.month, now.year)
 
-def mostrarConexoes(i): # Exibe todos os clientes conectados.
+def mostrarConexoes(i): # Exibe todos os clientes conectados. Quando i == 1, a função retorna a lista. Quando i == 0, a função imprime a lista e adiciona-a ao log.
 	if i:
 		msg = '{0} <servidor> Número de clientes conectados: {1}'.format(agora(), len(conexoes))
 		if len(conexoes):
