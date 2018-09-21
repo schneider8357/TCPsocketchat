@@ -10,7 +10,7 @@ import requests
 
 urls = { 'token':'https://suap.ifrn.edu.br/api/v2/autenticacao/token/',
 		 'dados':'https://suap.ifrn.edu.br/api/v2/minhas-informacoes/meus-dados/'}
-logins = {}		# { cliente : login }
+logins = {}	# { cliente : login }
 conexoes = {}	# { cliente : conexao (socket) e hora de início da conexão }
 mensagens = []
 
@@ -107,6 +107,8 @@ def autentica(login,senha): # Define o login do cliente de acordo com o nome no 
 def setLogin(con, cliente): # Conversa com a aplicação cliente para autenticá-lo.
 	# O servidor define as mensagens que aparecerão para o cliente na hora do login.
 	# Isso permite que poucas alterações sejam necessárias na aplicação cliente.
+	# Por exemplo, se o servidor deixar de autenticar o usuário no SUAP.
+	# É possível fazer isso sem qualquer alteração na aplicação cliente.
 	msg = 'Matrícula: '
 	con.send(msg.encode('utf-8'))
 	login = con.recv(1024).decode('utf-8')
