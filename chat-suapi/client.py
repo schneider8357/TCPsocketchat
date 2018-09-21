@@ -51,10 +51,9 @@ def setLogin():
 		if not login: login = '\x00'
 		cliente.send(login.encode('utf-8'))
 		msg = cliente.recv(1024).decode('utf-8')
-		if not msg == '/skip':							#	Caso o servidor envie '/skip', o cliente não precisa
-			senha = getpass.getpass(msg)				#	de senha para acessar o chat.
-			if not senha: senha = '\x00'				#	Isso permite que menos modificações sejam feitas no cliente,
-			cliente.send(senha.encode('utf-8'))			#	para melhor compatibilidade.
+		senha = getpass.getpass(msg)
+		if not senha: senha = '\x00'
+		cliente.send(senha.encode('utf-8'))
 	login = cliente.recv(1024).decode('utf-8')
 	return login
 
