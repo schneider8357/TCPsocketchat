@@ -75,12 +75,12 @@ def mostrarConexoes(i): # Exibe todos os clientes conectados.
 			for cliente in logins:
 				msg = msg + '\n{0} <servidor> Login: {1} Conectado desde: {2}'.format(agora(), logins[cliente], conexoes[cliente][1])
 		return(msg)
-	else: logAdd('{0} <servidor> Número de clientes conectados: {1}'.format(agora(),len(conexoes)))
-# Caso queira que a cada conexão feita ou desfeita sejam exibidos todos os clientes  ativos, descomente as linhas abaixo.
-
-#	if len(conexoes):
-#		for cliente in logins:
-#			logAdd('{0} <servidor> Login: {1} Cliente: {2} Conectado desde: {3}'.format(agora(), logins[cliente], cliente, conexoes[cliente][1]))
+	else:
+		logAdd('{0} <servidor> Número de clientes conectados: {1}'.format(agora(),len(conexoes)))
+		# Caso queira que a cada conexão feita ou desfeita sejam exibidos todos os clientes  ativos, descomente as linhas abaixo.
+		#if len(conexoes):
+		#for cliente in logins:
+		#logAdd('{0} <servidor> Login: {1} Cliente: {2} Conectado desde: {3}'.format(agora(), logins[cliente], cliente, conexoes[cliente][1]))
 
 def getToken(autenticacao): # Retorna o token para acesso ao SUAP.
 	response = requests.post(urls['token'], data=autenticacao)
@@ -104,9 +104,11 @@ def autentica(login,senha): # Define o login do cliente de acordo com o nome no 
 	else:
 		return '/loginok', login # '/loginok seu_login_aqui' é a mensagem que confirma que o login foi efetuado com sucesso. 
 
-def setLogin(con, cliente):						# Conversa com a aplicação cliente para autenticá-lo.
-	msg = 'Matrícula: '							# O servidor define as mensagens que aparecerão para o cliente na hora do login.
-	con.send(msg.encode('utf-8'))				# Isso permite que poucas alterações sejam necessárias na aplicação cliente.
+def setLogin(con, cliente): # Conversa com a aplicação cliente para autenticá-lo.
+	# O servidor define as mensagens que aparecerão para o cliente na hora do login.
+	# Isso permite que poucas alterações sejam necessárias na aplicação cliente.
+	msg = 'Matrícula: '
+	con.send(msg.encode('utf-8'))
 	login = con.recv(1024).decode('utf-8')
 	msg = 'Senha: '
 	con.send(msg.encode('utf-8'))
@@ -174,23 +176,26 @@ HOST = '127.0.0.1'
 PORT = str(input('Digite o número de porta em que o servidor TCP irá rodar (default = 50000): '))
 if (not PORT.isdigit()) or (int(PORT) > 65535) or (int(PORT) < 1024): PORT = '50000'
 
-
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 addr = (HOST, int(PORT))
-
 
 try:
 	server.bind(addr)
 	server.listen(1)
 except:
-	print('\nNão foi possível iniciar o servidor.\n')
-	os._exit(0)
+	try:
+		addr = (HOST, (int(PORT) + 2))
+		server.bind(addr)
+		server.listen(1)
+	except:
+		print('\nNão foi possível iniciar o servidor.\n')
+		os._exit(0)
 
 m = 'Servidor TCP-THREAD iniciado no IP %s na porta %s às %s'%(HOST,PORT,agora())
 mensagens.append(m)
 print('\n%s'%m)
 
-while True:
+while True: # Loop para sempre aceitar novas conexões.
 	try:
 		con, cliente = server.accept()
 	except KeyboardInterrupt:
@@ -199,6 +204,6 @@ while True:
 	_thread.start_new_thread(inicioConexao, tuple([con, cliente]))
 m = 'Encerrando servidor às %s...'%agora()
 mensagens.append(m)
-logRec()
+logRec() # Grava o log em um arquivo de texto.
 print('\n%s'%m)
 server.close()
