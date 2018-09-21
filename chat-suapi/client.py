@@ -15,10 +15,13 @@ def ajuda():
 	print('-----> Para pedir ajuda, use o comando \'/help\'')
 
 def comando(msg):
-	if msg == '/clear': os.system('clear')
-	elif msg == '/help': ajuda()
-	elif msg == '/clients' or msg.split()[0] == '/msg': cliente.send(msg.encode('utf-8'))
-	else: print('Comando \'%s\' não reconhecido.'%msg.split()[0])
+	c = msg.split()[0]
+	if c == '/clear' and len(msg.split()) == 1: os.system('clear')
+	elif c == '/help' and len(msg.split()) == 1: ajuda()
+	elif c == '/clients' and len(msg.split()) == 1: cliente.send(msg.encode('utf-8'))
+	elif c == '/msg': cliente.send(msg.encode('utf-8'))
+	elif c == '/help' or c == '/clear' or c == '/clients': print('Argumentos demais no comando \'%s\'.'%c)
+	else: print('Comando \'%s\' não reconhecido. Para ver todos os comandos, digite \'/help\'.'%msg.split()[0])
 
 def receber(cliente):
 	while True:
@@ -63,13 +66,19 @@ os.system('clear')
 HOST = '127.0.0.1'
 PORT = str(input('Digite o número de porta em que o cliente TCP irá rodar (default = 50000): '))
 if (not PORT.isdigit()) or (int(PORT) > 65535) or (int(PORT) < 1024): PORT = '50000'
+PORT = int(PORT)
 
 cliente = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-try: cliente.connect((HOST, int(PORT)))
+try:
+	cliente.connect((HOST, PORT))
 except:
-	print('\nServidor não encontrado.\n')
-	os._exit(0)
+	try:
+		PORT += 2
+		cliente.connect((HOST, PORT))
+	except:
+		print('\nServidor não encontrado.\n')
+		os._exit(0)
 
 try: login = setLogin()
 except:

@@ -42,19 +42,19 @@ def envioBroadcast(msg, remetente): # Envia uma mensagem a todos os clientes exc
 
 def envioPrivado(con,cliente,msg):
 	if len(msg.split()) >= 3:
-		a = msg.split()
-		a.pop(0)
-		a.pop(len(a) - 1)
-		loginDestino = ''
-		for i in a: loginDestino += i + ' '
-		loginDestino = loginDestino[:-1]
+		loginDestino = msg.split()[1]
 		loginOrigem = logins[cliente]
 		if loginOrigem == loginDestino:
 			con.send('Você não pode enviar uma mensagem privada para si.'.encode('utf-8'))
-		elif loginDestino in logins.values():
+		elif loginDestino in logins.values(): # Comente essa linha para permitir que um cliente mande uma mensagem privada para si.
 			clienteOrigem = (list(logins.keys())[list(logins.values()).index(loginOrigem)])
 			clienteDestino = (list(logins.keys())[list(logins.values()).index(loginDestino)])
-			mensagem = msg.split()[len(msg.split()) -1]
+			a = msg.split()
+			a.pop(0)
+			a.pop(0)
+			mensagem = ''
+			for i in a: mensagem += i + ' '
+			mensagem = mensagem[:-1]
 			logAdd('{0} {1} {2} pm {3} {4}: {5}'.format(agora(), loginOrigem, clienteOrigem, loginDestino, clienteDestino, mensagem))
 			msg = '{0} {1} diz (privado): {2}'.format(agora(), logins[cliente], mensagem)
 			conexoes[clienteDestino][0].send(msg.encode('utf-8'))
@@ -98,7 +98,7 @@ def autentica(login,senha): # Define o login do cliente de acordo com o nome no 
 	autenticacao = { 'username': login, 'password': senha }
 	cabecalho = {'Authorization': 'JWT {0}'.format(getToken(autenticacao))}
 	informacoes = json.loads(getInformacoes(cabecalho))
-	login = informacoes['nome_usual']
+	login = informacoes['nome_usual'].replace(' ','_')
 	if login in logins.values():
 		return 'O usuário já está logado! Tente novamente!\nLogin: '
 	else:
@@ -154,7 +154,7 @@ def conexao(con,cliente):
 		if not msg or msg == '/exit': break
 		elif msg.split()[0] == '/msg': # Executa o comando /msg (envia mensagens privadas entre clientes).
 			envioPrivado(con, cliente, msg)
-		elif msg == '/clients': # Executa o comando /clients (envia para o cliente uma lista com os clientes ativos).
+		elif msg.split()[0] == '/clients': # Executa o comando /clients (envia para o cliente uma lista com os clientes ativos).
 			con.send(mostrarConexoes(1).encode('utf-8'))
 		else:
 			logAdd('{0} {1} {2}: {3}'.format(agora(), logins[cliente], cliente, msg))
@@ -177,23 +177,23 @@ os.system('clear')
 HOST = '127.0.0.1'
 PORT = str(input('Digite o número de porta em que o servidor TCP irá rodar (default = 50000): '))
 if (not PORT.isdigit()) or (int(PORT) > 65535) or (int(PORT) < 1024): PORT = '50000'
+PORT = int(PORT)
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-addr = (HOST, int(PORT))
 
 try:
-	server.bind(addr)
+	server.bind((HOST, PORT))
 	server.listen(1)
 except:
 	try:
-		addr = (HOST, (int(PORT) + 2))
-		server.bind(addr)
+		PORT += 2
+		server.bind((HOST, PORT))
 		server.listen(1)
 	except:
 		print('\nNão foi possível iniciar o servidor.\n')
 		os._exit(0)
 
-m = 'Servidor TCP-THREAD iniciado no IP %s na porta %s às %s'%(HOST,PORT,agora())
+m = 'Servidor TCP-THREAD iniciado no IP %s na porta %d às %s'%(HOST,PORT,agora())
 mensagens.append(m)
 print('\n%s'%m)
 
