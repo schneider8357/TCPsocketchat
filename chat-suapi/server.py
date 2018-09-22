@@ -9,8 +9,7 @@ import requests
 
 
 HOST = '192.168.0.26'
-urls = { 'token':'https://suap.ifrn.edu.br/api/v2/autenticacao/token/',
-		 'dados':'https://suap.ifrn.edu.br/api/v2/minhas-informacoes/meus-dados/'}
+urls = { 'token':'https://suap.ifrn.edu.br/api/v2/autenticacao/token/', 'dados':'https://suap.ifrn.edu.br/api/v2/minhas-informacoes/meus-dados/'}
 logins = {}	# { cliente : login }
 conexoes = {}	# { cliente : conexao (socket) e hora de início da conexão }
 mensagens = []
@@ -102,7 +101,7 @@ def autentica(login,senha): # Define o login do cliente de acordo com o nome no 
 	if login in logins.values():
 		return 'O usuário já está logado! Tente novamente!\nMatrícula: ', login
 	else:
-		return '/loginok', login # '/loginok seu_login_aqui' é a mensagem que confirma que o login foi efetuado com sucesso. 
+		return '/loginok', login # '/loginok' é a mensagem que confirma que o login foi efetuado com sucesso. 
 
 def setLogin(con, cliente): # Conversa com a aplicação cliente para autenticá-lo.
 	# O servidor define as mensagens que aparecerão para o cliente na hora do login.
