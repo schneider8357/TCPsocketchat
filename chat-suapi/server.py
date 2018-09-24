@@ -8,10 +8,11 @@ import json
 import requests
 
 
-HOST = '192.168.0.26'
+HOST = '127.0.0.1'
 urls = { 'token':'https://suap.ifrn.edu.br/api/v2/autenticacao/token/', 'dados':'https://suap.ifrn.edu.br/api/v2/minhas-informacoes/meus-dados/'}
 logins = {}	# { cliente : login }
-conexoes = {}	# { cliente : conexao (socket) e hora de início da conexão }
+conexoes = {}	# { cliente : conexao (socket) }
+horaInicio = {}	# { cliente : hora de início da conexão }
 mensagens = []
 
 
@@ -24,15 +25,15 @@ def logAdd(msg): # Exibe na tela e adiciona ao log uma mensagem.
 def logRec(): # Salva o log do chat em um arquivo.
 	print('\nFazendo backup das mensagens...\n')
 	now = datetime.now()
-	now = '{0:0=2d}{1:0=2d}{2:0=2d}_{3:0=2d}{4:0=2d}{5}'.format(now.hour, now.minute, now.second, now.day, now.month, now.year)
-	with open('%s.txt' %(now), 'w') as arq:
+	filename = '{0:0=2d}{1:0=2d}{2:0=2d}_{3:0=2d}{4:0=2d}{5}.txt'.format(now.hour, now.minute, now.second, now.day, now.month, now.year)
+	with open(filename, 'w') as arq:
 		for msg in mensagens:
 			arq.write('%s\n'%msg)
-		print('\nBackup realizado com sucesso! Log: %s.txt\n'%(now))
+		print('\nBackup realizado com sucesso! Log: %s\n'%filename)
 
 def envioBroadcast(msg, remetente): # Envia uma mensagem a todos os clientes exceto àquele que enviou (remetente)
 	for cliente in conexoes:
-		con = conexoes[cliente][0]
+		con = conexoes[cliente]
 		if cliente == remetente: continue
 		try:
 			con.send(msg.encode('utf-8'))
@@ -57,7 +58,7 @@ def envioPrivado(con,cliente,msg):
 			mensagem = mensagem[:-1]
 			logAdd('{0} {1} {2} pm {3} {4}: {5}'.format(agora(), loginOrigem, clienteOrigem, loginDestino, clienteDestino, mensagem))
 			msg = '{0} {1} diz (privado): {2}'.format(agora(), logins[cliente], mensagem)
-			conexoes[clienteDestino][0].send(msg.encode('utf-8'))
+			conexoes[clienteDestino].send(msg.encode('utf-8'))
 		else:
 			m = 'O cliente de login %s não está online.\nO uso do comando \'/msg\' é: \'/msg login_destino sua_mensagem\''%loginDestino
 			con.send(m.encode('utf-8'))
@@ -73,13 +74,13 @@ def mostrarConexoes(i): # Exibe todos os clientes conectados. Quando i == 1, a f
 		msg = '{0} <servidor> Número de clientes conectados: {1}'.format(agora(), len(conexoes))
 		if len(conexoes):
 			for cliente in logins:
-				msg = msg + '\n{0} <servidor> Login: {1} Conectado desde: {2}'.format(agora(), logins[cliente], conexoes[cliente][1])
+				msg = msg + '\n{0} <servidor> Login: {1} Conectado desde: {2}'.format(agora(), logins[cliente], horaInicio[cliente])
 		return(msg)
 	else:
 		logAdd('{0} <servidor> Número de clientes conectados: {1}'.format(agora(),len(conexoes)))
 		# Caso queira que a cada conexão feita ou desfeita sejam exibidos todos os clientes  ativos, descomente as linhas abaixo.
 		#if len(conexoes):
-		#	for cliente in logins: logAdd('{0} <servidor> Login: {1} Cliente: {2} Conectado desde: {3}'.format(agora(), logins[cliente], cliente, conexoes[cliente][1]))
+		#	for cliente in logins: logAdd('{0} <servidor> Login: {1} Cliente: {2} Conectado desde: {3}'.format(agora(), logins[cliente], cliente, horaInicio[cliente]))
 
 def getToken(autenticacao): # Retorna o token para acesso ao SUAP.
 	response = requests.post(urls['token'], data=autenticacao)
@@ -130,7 +131,8 @@ def setLogin(con, cliente): # Conversa com a aplicação cliente para autenticá
 		senha = con.recv(1024).decode('utf-8')
 	logins[cliente] = login
 	con.send(login.encode('utf-8'))
-	conexoes[cliente] = tuple([con,agora()])
+	conexoes[cliente] = con
+	horaInicio[cliente] = agora()
 
 def inicioConexao(con, cliente):
 	try:
@@ -166,6 +168,7 @@ def fimConexao(con, cliente):
 	logAdd('{0} <servidor> {1} {2} saiu.'.format(agora(),logins[cliente], cliente))
 	del logins[cliente]
 	del conexoes[cliente]
+	del horaInicio[cliente]
 	mostrarConexoes(0)
 	_thread.start_new_thread(envioBroadcast, tuple([m, cliente]))
 

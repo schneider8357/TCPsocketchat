@@ -5,7 +5,7 @@ import socket
 import _thread
 import getpass
 
-HOST = '192.168.0.26'
+HOST = '127.0.0.1'
 
 def ajuda():
 	print('-----> Para sair, use o comando \'/exit\'')
@@ -29,8 +29,9 @@ def receber(cliente):
 		if not msg: break
 		print('\n{0}\nDigite a mensagem: '.format(msg), end='')
 	print('\nServidor inalcançável.\n')
-	os._exit(0)
 	cliente.close()
+	os._exit(0)
+	
 
 def enviar():
 	while True:
