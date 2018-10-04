@@ -30,7 +30,7 @@ def setLogin():
 
 os.system('clear')
 
-HOST = '127.0.0.1'
+HOST = '10.25.1.204'
 PORT = str(input('Digite o número de porta em que o cliente TCP irá rodar (default = 50000): '))
 if (not PORT.isdigit()) or (int(PORT) > 65535) or (int(PORT) < 1024): PORT = '50000'
 
