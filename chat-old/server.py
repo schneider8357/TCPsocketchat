@@ -72,7 +72,7 @@ def inicioConexao(con, cliente):
 #MAIN
 os.system('clear')
 now = datetime.now()
-HOST = '127.0.0.1'
+HOST = ''
 PORT = str(input('Digite o número de porta em que o servidor TCP irá rodar (default = 50000): '))
 if (not PORT.isdigit()) or (int(PORT) > 65535) or (int(PORT) < 1024): PORT = '50000'
 
