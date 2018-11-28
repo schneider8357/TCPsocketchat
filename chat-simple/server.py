@@ -71,6 +71,7 @@ conexoes = {}	# { cliente : conexao (socket) }
 horaInicio = {}	# { cliente : hora de início da conexão }
 mensagens = []
 
+servername = '<server>'
 
 #FUNCOES
 
@@ -87,7 +88,8 @@ def logRec(): # Salva o log do chat em um arquivo.
 			arq.write('%s\n'%msg)
 		print('\nBackup realizado com sucesso! Log: %s\n'%filename)
 
-def envioBroadcast(msg, remetente): # Envia uma mensagem a todos os clientes exceto àquele que enviou (remetente)
+def envioBroadcast(dataehora, remetente, msg): # Envia uma mensagem a todos os clientes exceto àquele que enviou (remetente)
+	logAdd(dataehora,remetente,msg)	
 	for cliente in conexoes:
 		con = conexoes[cliente]
 		if cliente == remetente: continue
@@ -125,84 +127,68 @@ def agora(): # Retorna a data e hora atuais.
 	now = datetime.now()
 	return '{0:0=2d}:{1:0=2d} {2:0=2d}/{3:0=2d}/{4}'.format(now.hour, now.minute, now.day, now.month, now.year)
 
-def mostrarConexoes(i): # Exibe todos os clientes conectados. Quando i == 1, a função retorna a lista. Quando i == 0, a função imprime a lista e adiciona-a ao log.
-	if i:
-		msg = '{0} <servidor> Número de clientes conectados: {1}'.format(agora(), len(conexoes))
-		if len(conexoes):
-			for cliente in logins:
-				msg = msg + '\n{0} <servidor> Login: {1} Conectado desde: {2}'.format(agora(), logins[cliente], horaInicio[cliente])
-		return(msg)
-	else:
-		logAdd('{0} <servidor> Número de clientes conectados: {1}'.format(agora(),len(conexoes)))
-		# Caso queira que a cada conexão feita ou desfeita sejam exibidos todos os clientes  ativos, descomente as linhas abaixo.
-		#if len(conexoes):
-		#	for cliente in logins: logAdd('{0} <servidor> Login: {1} Cliente: {2} Conectado desde: {3}'.format(agora(), logins[cliente], cliente, horaInicio[cliente]))
-
 def getToken(autenticacao): # Retorna o token para acesso ao SUAP.
 	response = requests.post(urls['token'], data=autenticacao)
 	if response.status_code == 200:
 		return json.loads(response.content.decode('utf-8'))['token']
-	return None
+	return 0
 
 def getInformacoes(cabecalho): # Retorna os dados utilizando o token.
 	response = requests.get(urls['dados'], headers=cabecalho)
 	if response.status_code == 200:
 		return response.content.decode('utf-8')
-	return None
+	return 0
 
 def autentica(login,senha): # Define o login do cliente de acordo com o nome no SUAP.
 	autenticacao = { 'username': login, 'password': senha }
 	cabecalho = {'Authorization': 'JWT {0}'.format(getToken(autenticacao))}
-	informacoes = json.loads(getInformacoes(cabecalho))
-	login = informacoes['nome_usual'].replace(' ','_')
-	if login in logins.values():
-		return 'O usuário já está logado! Tente novamente!\nMatrícula: ', login
-	else:
-		return '/loginok', login # '/loginok' é a mensagem que confirma que o login foi efetuado com sucesso. 
+	informacoes = None
+	if cabecalho:
+		informacoes = json.loads(getInformacoes(cabecalho))
+	if informacoes:
+		login = informacoes['nome_usual'].replace(' ','_') # Ex.: nome_usual = 'Lucas Schneider'; login = 'Lucas_Schneider'
+		return login
+	return 0
 
-def setLogin(con, cliente): # Conversa com a aplicação cliente para autenticá-lo.
-	# O servidor define as mensagens que aparecerão para o cliente na hora do login.
-	# Isso permite que poucas alterações sejam necessárias na aplicação cliente.
-	# Por exemplo, se o servidor deixar de autenticar o usuário no SUAP.
-	# É possível fazer isso sem qualquer alteração na aplicação cliente.
-	msg = 'Matrícula: '
-	con.send(msg.encode('utf-8'))
-	login = con.recv(1024).decode('utf-8')
-	msg = 'Senha: '
-	con.send(msg.encode('utf-8'))
-	senha = con.recv(1024).decode('utf-8')
-	while True:
-		if login == '\x00' or senha == '\x00':
-			msg = 'A matrícula e senha não podem ficar em branco! Tente novamente!\nMatrícula: '
-		else:
-			try:
-				msg, login = autentica(login,senha)
-			except:
-				msg = 'Não foi possível realizar o login.\nVerifique se seu usuário e senha estão corretos.\nMatrícula: '
-		con.send(msg.encode('utf-8'))
-		if msg == '/loginok': break
-		login = con.recv(1024).decode('utf-8')
-		msg = 'Senha: '
-		con.send(msg.encode('utf-8'))
-		senha = con.recv(1024).decode('utf-8')
+def setLogin(con, cliente):
+	while msg != 'OK':
+		login = con.recv(1024).decode('utf-8') # Receber login
+		senha = con.recv(1024).decode('utf-8') # Receber senha
+		
+		if (login == '\x00' or senha == '\x00'): msg = 'A matrícula e senha não podem ficar em branco. Tente novamente.'
+		else: login = autentica(login,senha) # Tentativa de login no SUAP
+
+		if login: msg = 'OK'
+		else: msg = 'Não foi possível realizar o login. Verifique se seu usuário e senha estão corretos.'
+
+		if login in logins.values(): # Se houver alguém online com aquele login
+			msg = 'Já há um usuário com esse login online. Tente novamente.'
+
+		try: con.send(msg.encode('utf-8'))
+		except: return 0
+
+	try: con.send(login.encode('utf-8'))
+	except: return 0
 	logins[cliente] = login
-	con.send(login.encode('utf-8'))
 	conexoes[cliente] = con
 	horaInicio[cliente] = agora()
+	return 1
 
 def inicioConexao(con, cliente):
-	try:
-		setLogin(con, cliente)
-		msg = '{0} <servidor> {1} entrou.'.format(agora(), logins[cliente]) 
-		logAdd('{0} <servidor> {1} {2} entrou.'.format(agora(), logins[cliente], cliente))
-		# A mensagem enviada é diferente da que aparece no servidor, para não enviar aos clientes os endereços IP dos outros clientes.
-		_thread.start_new_thread(envioBroadcast, tuple([msg, cliente]))
-		mostrarConexoes(0)
-		conexao(con,cliente)
-		con.close()
-	except:
-		logAdd('{0} <servidor> Não foi possível conectar com {1}. Finalizando thread.'.format(agora(),cliente))
-		con.close()
+	OK_login = setLogin(con, cliente)
+	if OK_login: # Se o cliente se autenticou no SUAP com sucesso
+		msg = logins[cliente],' entrou.'
+		envioBroadcast(agora(),servername,msg)
+		OK_conexao = conexao(con,cliente)
+	else:
+		logAdd(agora(),servername, ('Algo deu errado ao conectar com o cliente ',cliente))
+
+	if not OK_conexao: # Se a conexão foi encerrada abruptamente
+		del logins[cliente]
+		del conexoes[cliente]
+		del horaInicio[cliente]
+
+	con.close()
 	_thread.exit()
 
 def conexao(con,cliente):
