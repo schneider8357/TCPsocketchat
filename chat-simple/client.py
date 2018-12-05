@@ -29,7 +29,9 @@ def enviar():
 		if not msg: continue
 		if msg == 'clear': os.system('clear')
 		if msg == 'help': ajuda()
-		else: cliente.send(msg.encode('utf-8'))
+		else:
+			try: cliente.send(msg.encode('utf-8'))
+			except: break
 	cliente.close()
 	print('\nConexão encerrada.\n')
 	os._exit(0)
@@ -48,7 +50,7 @@ def setLogin():
 			cliente.send(senha.encode('utf-8'))
 
 			msg = cliente.recv(1024).decode('utf-8')
-			print(msg,'\n')
+			print('Efetuando login. Aguarde um momento...\n')
 			if msg == 'OK': break
 		login = cliente.recv(1024).decode('utf-8')
 	except:
