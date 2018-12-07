@@ -7,6 +7,7 @@ import datetime
 import json
 import requests
 import time
+import psycopg2
 
 
 HOST = '127.0.0.1'
@@ -15,13 +16,86 @@ logins = {} # { cliente : login }
 conexoes = {} # { cliente : conexao (socket) }
 horaInicio = {} # { cliente : hora de início da conexão }
 mensagens = []
-msg = ''
 servername = 'Servidor TCP'
 logins[servername] = '<server>'
 
-#FUNCOES
+strConexaoPostgres = "dbname=postgres user=postgres host=localhost password=aluno"
+strConexaoChat = "dbname=db_chat user=postgres host=localhost password=aluno"
+strCreateMensagem = "create table mensagem (id int auto_increment primary key, " \
+										"dataehora timestamp not null, "\
+										"login_src varchar(200), "\
+										"endpoint_src varchar(50), "\
+										"msg varchar(500))"
 
+#FUNCOES DB
+# -----------------------------------------------------------------------------------------------
+def db_exists():
+	exists = False
+	try:
+		strSQL = "select datname from pg_database where datname='db_chat'"
+		con = psycopg2.connect(strConexaoPostgres)
+		cur = con.cursor()
+		cur.execute(strSQL)
+		if cur.fetchone(): exists = True
+		cur.close()
+		con.close()
+	except psycopg2.Error as e:
+		print (e)
+	return exists
+
+def table_exists():
+	exists = False
+	try:
+		strSQL = "select relname from pg_class where relname='mensagem'"
+		con = psycopg2.connect(strConexaoChat)
+		cur = con.cursor()
+		cur.execute(strSQL)
+		if cur.fetchone(): exists = True
+		cur.close()
+		con.close()
+	except psycopg2.Error as e:
+		print (e)
+	return exists
+
+def db_create():
+	try:
+		from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+		strSQL = "create database db_chat"
+		con = psycopg2.connect(strConexaoPostgres)
+		con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+		cur = con.cursor()
+		cur.execute(strSQL)
+		cur.close()
+		con.close()
+	except psycopg2.Error as e:
+		print (e)
+
+def table_create():
+	try:
+		con = psycopg2.connect(strConexaoChat)
+		cur = con.cursor()
+		cur.execute(strCreateMensagem)
+		cur.close()
+		con.commit()
+		con.close()
+	except psycopg2.Error as e:
+		print (e)
+
+def msg_insert(dataehora,login,cliente,msg):
+	con = psycopg2.connect(strConexaoChat)
+	cur = conn.cursor()
+	strSQLInsereDados = "insert into mensagem (dataehora, login_src, endpoint_src, msg) values ('{0}', '{1}','{2}','{3}')".format(dataehora,login,cliente,msg)
+	cur.execute(strSQLInsereDados)
+	conn.commit()
+	conn.close()
+
+# -----------------------------------------------------------------------------------------------
+
+
+#FUNCOES CHAT
+# -----------------------------------------------------------------------------------------------
 def logAdd(dataehora, remetente, msg): # Exibe na tela e adiciona ao log uma mensagem.
+	msg_insert(dataehora,logins[remetente],remetente,msg)
 	msg = '{0} {1} {2}: {3}'.format(dataehora, logins[remetente], remetente, msg)
 	mensagens.append('%s'%msg)
 	print(msg)
@@ -49,7 +123,7 @@ def envioBroadcast(dataehora, remetente, msg): # Envia uma mensagem a todos os c
 
 def agora(): # Retorna a data e hora atuais.
 	now = datetime.datetime.now()
-	return '{0:0=2d}/{1:0=2d}/{2} {3:0=2d}:{4:0=2d}'.format(now.day, now.month, now.year, now.hour, now.minute)
+	return '{0}-{1:0=2d}-{2:0=2d} {3:0=2d}:{4:0=2d}:{5:0=2d}'.format(now.year, now.month, now.day, now.hour, now.minute, now.second)
 
 def getToken(autenticacao): # Retorna o token para acesso ao SUAP.
 	response = requests.post(urls['token'], data=autenticacao)
@@ -87,18 +161,14 @@ def setLogin(con, cliente):
 				msg = 'OK'
 			except:
 				return 0
-
 			if msg != 'OK' or login == None:
 				msg = 'Não foi possível realizar o login. Verifique se seu usuário e senha estão corretos.'
-
 		#if login in logins.values(): # Se houver alguém online com aquele login
 		#	msg = 'Já há um usuário com esse login online. Tente novamente.'
-
+		# As linhas acima estão comentadas para permitir varios usuários com o mesmo login
 		try: con.send(msg.encode('utf-8'))
 		except: return 0
-
-		if msg == 'OK': break
-
+	
 	time.sleep(2)
 	try: con.send(login.encode('utf-8'))
 	except: return 0
@@ -120,11 +190,7 @@ def inicioConexao(con, cliente):
 	else:
 		msg = 'Não foi possível autenticar o cliente ' + str(cliente)
 		logAdd(agora(),servername, msg)
-
-	
-
 	fimConexao(con, cliente)
-
 	con.close()
 	_thread.exit()
 
@@ -132,10 +198,8 @@ def conexao(con,cliente):
 	msg = ''
 	while msg != 'exit': # 'exit' = Comando utilizado pelo cliente para encerrar a conexão
 		msg = con.recv(1024).decode('utf-8')
-		if msg == 'exit': break
 		if not msg: return 0
-		_thread.start_new_thread(envioBroadcast, tuple([agora(),cliente,msg]))
-		
+		if not msg == 'exit': _thread.start_new_thread(envioBroadcast, tuple([agora(),cliente,msg]))
 	return 1
 
 def fimConexao(con, cliente):
@@ -149,47 +213,49 @@ def fimConexao(con, cliente):
 		del horaInicio[cliente]
 
 
-#MAIN
+def main():
+	os.system('clear')
 
-os.system('clear')
+	PORT = str(input('Digite o número de porta em que o servidor TCP irá rodar (default = 50000): '))
+	if (not PORT.isdigit()) or (int(PORT) > 65535) or (int(PORT) < 1024): PORT = '50000'
+	PORT = int(PORT)
 
-PORT = str(input('Digite o número de porta em que o servidor TCP irá rodar (default = 50000): '))
-if (not PORT.isdigit()) or (int(PORT) > 65535) or (int(PORT) < 1024): PORT = '50000'
-PORT = int(PORT)
+	server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-try:
-	server.bind((HOST, PORT))
-	server.listen(1)
-except:
 	try:
-		PORT += 2
 		server.bind((HOST, PORT))
 		server.listen(1)
 	except:
+		print('\nNão foi possível iniciar o servidor.\n')
+		os._exit(0)
+	if db_exists():
+		print("O banco existe!")
+		pass
+	else:
+		print("Criando o banco...")
+		db_create()
+	if table_exists():
+		print("A tabela usuario existe!")
+		pass
+	else:
+		print("Criando tabela usuario...")
+		table_create()
+	m = 'Servidor TCP-THREAD iniciado no IP %s na porta %d às %s'%(HOST,PORT,agora())
+	logAdd(agora(),servername,m)
+	print('\n%s'%m)
+
+	while True: # Loop para sempre aceitar novas conexões.
 		try:
-			PORT += 2
-			server.bind((HOST, PORT))
-			server.listen(1)
-		except:
-			print('\nNão foi possível iniciar o servidor.\n')
-			os._exit(0)
-
-m = 'Servidor TCP-THREAD iniciado no IP %s na porta %d às %s'%(HOST,PORT,agora())
-mensagens.append(m)
-print('\n%s'%m)
-
-while True: # Loop para sempre aceitar novas conexões.
-	try:
-		con, cliente = server.accept()
-	except KeyboardInterrupt:
-		break
-	msg = 'Nova thread iniciada para o cliente ' + str(cliente)
-	logAdd(agora(),servername, msg)
-	_thread.start_new_thread(inicioConexao, tuple([con, cliente]))
-m = 'Encerrando servidor às %s...'%agora()
-mensagens.append(m)
-logRec() # Grava o log em um arquivo de texto.
-print('\n%s'%m)
-server.close()
+			con, cliente = server.accept()
+		except KeyboardInterrupt:
+			break
+		msg = 'Nova thread iniciada para o cliente ' + str(cliente)
+		logAdd(agora(),servername, msg)
+		_thread.start_new_thread(inicioConexao, tuple([con, cliente]))
+	m = 'Encerrando servidor às %s...'%agora()
+	logAdd(agora(),servername,m)
+	logRec() # Grava o log em um arquivo de texto.
+	print('\n%s'%m)
+	server.close()
+	
+if __name__ == '__main__': main()
