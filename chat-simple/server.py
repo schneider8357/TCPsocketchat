@@ -21,7 +21,7 @@ logins[servername] = '<server>'
 
 strConexaoPostgres = "dbname=postgres user=postgres host=localhost password=aluno"
 strConexaoChat = "dbname=db_chat user=postgres host=localhost password=aluno"
-strCreateMensagem = "create table mensagem (id int auto_increment primary key, " \
+strCreateMensagem = "create table mensagem (id serial primary key, " \
 										"dataehora timestamp not null, "\
 										"login_src varchar(200), "\
 										"endpoint_src varchar(50), "\
@@ -83,11 +83,11 @@ def table_create():
 
 def msg_insert(dataehora,login,cliente,msg):
 	con = psycopg2.connect(strConexaoChat)
-	cur = conn.cursor()
-	strSQLInsereDados = "insert into mensagem (dataehora, login_src, endpoint_src, msg) values ('{0}', '{1}','{2}','{3}')".format(dataehora,login,cliente,msg)
-	cur.execute(strSQLInsereDados)
-	conn.commit()
-	conn.close()
+	cur = con.cursor()
+	strSQLInsereDados = "insert into mensagem (dataehora, login_src, endpoint_src, msg) values (%s, %s, %s, %s)"
+	cur.execute(strSQLInsereDados,(dataehora,login,cliente,msg))
+	con.commit()
+	con.close()
 
 # -----------------------------------------------------------------------------------------------
 
