@@ -4,6 +4,7 @@ import os
 import socket
 import _thread
 import getpass
+import time
 
 HOST = '127.0.0.1'
 
@@ -58,10 +59,11 @@ def setLogin(cliente):
 	return login
 
 def recvMsgs(cliente):
-	num = int(cliente.recv(1024).decode('utf-8'))
+	num = cliente.recv(1024).decode('utf-8')
 	print(num)
-	for i in range(num):
+	for i in range(int(num)):
 		print(cliente.recv(1024).decode('utf-8'))
+		time.sleep(0.2)
 
 #MAIN
 def main():

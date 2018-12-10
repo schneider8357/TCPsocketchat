@@ -90,18 +90,17 @@ def msg_insert(dataehora,login,cliente,msg):
 	con.close()
 
 def msg_retrieve():
-	r = []
 	try:
-		strSQL = "select * from mensagem"
+		strSQL = "select * from mensagem where login_src <> '{}'".format(logins[servername])
 		con = psycopg2.connect(strConexaoChat)
 		cur = con.cursor()
 		cur.execute(strSQL)
 		r = cur.fetchall()
 		cur.close()
 		con.close()
+		return r
 	except psycopg2.Error as e:
 		print (e)
-	return 
 
 # -----------------------------------------------------------------------------------------------
 
@@ -168,7 +167,8 @@ def setLogin(con, cliente):
 		if not login: return 0
 		senha = con.recv(1024).decode('utf-8') # Receber senha
 		if not senha: return 0
-		if (login == '\x00' or senha == '\x00'): msg = 'A matrícula e senha não podem ficar em branco. Tente novamente.'
+		if (login == '\x00' or senha == '\x00'):
+			msg = 'A matrícula e senha não podem ficar em branco. Tente novamente.'
 		else:
 			try:
 				login = autentica(login,senha) # Tentativa de login no SUAP
@@ -193,16 +193,18 @@ def setLogin(con, cliente):
 	return 1
 
 def sendMsgs(con, cliente):
-	time.sleep(1)
 	msgs = msg_retrieve()
-	num = len(msgs)
+	if not msgs: num = '0'
+	else: num = len(msgs)
 	try:
-		con.send(num.encode('utf-8'))
+		con.send(str(num).encode('utf-8'))
+		if not msgs: return 1
 		for i in msgs:
-			if i[0][3] == servername: continue
-			print('{0} {1}: {2}'.format(i[0][1], i[0][2], i[0][4]))
-			con.send([0][4].encode('utf-8'))
+			msg = '{0} {1}: {2}'.format(i[1], i[2], i[4])
+			con.send(msg.encode('utf-8'))
+			time.sleep(0.2)
 	except: return 0
+	return 1
 
 def inicioConexao(con, cliente):
 	OK_login = setLogin(con, cliente)
