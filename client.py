@@ -57,6 +57,12 @@ def setLogin(cliente):
 		return 0
 	return login
 
+def recvMsgs(cliente):
+	num = int(cliente.recv(1024).decode('utf-8'))
+	print(num)
+	for i in range(num):
+		print(cliente.recv(1024).decode('utf-8'))
+
 #MAIN
 def main():
 	os.system('clear')
@@ -82,6 +88,8 @@ def main():
 
 	print('\nBem vindo, %s!'%login)
 	ajuda()
+	print('\nBaixando o histórico de mensagens...')
+	recvMsgs(cliente)
 	_thread.start_new_thread(receber, tuple([cliente]))
 
 	try: enviar(cliente)

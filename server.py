@@ -89,15 +89,20 @@ def msg_insert(dataehora,login,cliente,msg):
 	con.commit()
 	con.close()
 
-def get_msg():
-	con = psycopg2.connect(strConexaoChat)
-	cur = con.cursor()
-	strSQL = "select * from mensagem"
-	cur.execute(strSQL)
-	resultado = cur.fetchall()
-	con.commit()
-	con.close()
-	return resultado
+def msg_retrieve():
+	r = []
+	try:
+		strSQL = "select * from mensagem"
+		con = psycopg2.connect(strConexaoChat)
+		cur = con.cursor()
+		cur.execute(strSQL)
+		r = cur.fetchall()
+		cur.close()
+		con.close()
+	except psycopg2.Error as e:
+		print (e)
+	return 
+
 # -----------------------------------------------------------------------------------------------
 
 
@@ -187,23 +192,31 @@ def setLogin(con, cliente):
 	horaInicio[cliente] = agora()
 	return 1
 
-def sendLog(con, cliente):
-	msgs = get_msg()
-	for msg in msgs:
-		if msg[3] == servername: continue
-		try: print('{0} {1}: {2}'.format(msg[1], msg[2], msg[4]))
-		except: return 0
-	return 1
+def sendMsgs(con, cliente):
+	time.sleep(1)
+	msgs = msg_retrieve()
+	num = len(msgs)
+	try:
+		con.send(num.encode('utf-8'))
+		for i in msgs:
+			if i[0][3] == servername: continue
+			print('{0} {1}: {2}'.format(i[0][1], i[0][2], i[0][4]))
+			con.send([0][4].encode('utf-8'))
+	except: return 0
 
 def inicioConexao(con, cliente):
 	OK_login = setLogin(con, cliente)
 	if OK_login: # Se o cliente se autenticou no SUAP com sucesso
-		OK_envio = sendLog(con, cliente)
-		msg = logins[cliente] + ' entrou.'
-		_thread.start_new_thread(envioBroadcast, tuple([agora(),servername,msg]))
-		OK_conexao = conexao(con,cliente)
-		if OK_conexao == 0: # Se a conexão foi encerrada abruptamente
-			msg = 'Algo deu errado ao conectar com o cliente ' + str(cliente)
+		OK_send = sendMsgs(con, cliente)
+		if OK_send: # Se o histórico de mensagens foi enviado com sucesso
+			msg = logins[cliente] + ' entrou.'
+			_thread.start_new_thread(envioBroadcast, tuple([agora(),servername,msg]))
+			OK_conexao = conexao(con,cliente)
+			if OK_conexao == 0: # Se a conexão foi encerrada abruptamente
+				msg = 'Algo deu errado ao conectar com o cliente ' + str(cliente)
+				logAdd(agora(),servername, msg)
+		else:
+			msg = 'Não foi possível enviar o histórico de mensagens para o cliente ' + str(cliente)
 			logAdd(agora(),servername, msg)
 	else:
 		msg = 'Não foi possível autenticar o cliente ' + str(cliente)
