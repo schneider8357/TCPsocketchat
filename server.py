@@ -269,7 +269,7 @@ def main():
 		print("Criando o banco...")
 		db_create()
 	if table_exists():
-		print("A tabela usuario existe!")
+		print("A tabela mensagem existe!")
 		pass
 	else:
 		print("Criando tabela usuario...")
