@@ -11,6 +11,7 @@ import psycopg2
 
 
 HOST = '127.0.0.1'
+PORT = 5000
 urls = { 'token':'https://suap.ifrn.edu.br/api/v2/autenticacao/token/', 'dados':'https://suap.ifrn.edu.br/api/v2/minhas-informacoes/meus-dados/'}
 logins = {} # { cliente : login }
 conexoes = {} # { cliente : conexao (socket) }
@@ -112,7 +113,7 @@ def logAdd(dataehora, remetente, msg): # Exibe na tela e adiciona ao log uma men
 	msg = '{0} {1} {2}: {3}'.format(dataehora, logins[remetente], remetente, msg)
 	mensagens.append('%s'%msg)
 	print(msg)
-	
+
 def logRec(): # Salva o log do chat em um arquivo.
 	print('\nFazendo backup das mensagens...\n')
 	now = datetime.datetime.now()
@@ -165,6 +166,7 @@ def setLogin(con, cliente):
 	while msg != 'OK':
 		login = con.recv(1024).decode('utf-8') # Receber login
 		if not login: return 0
+		time.sleep(0.1)
 		senha = con.recv(1024).decode('utf-8') # Receber senha
 		if not senha: return 0
 		if (login == '\x00' or senha == '\x00'):
@@ -208,6 +210,7 @@ def sendMsgs(con, cliente):
 
 def inicioConexao(con, cliente):
 	OK_login = setLogin(con, cliente)
+	print('teste')
 	if OK_login: # Se o cliente se autenticou no SUAP com sucesso
 		OK_send = sendMsgs(con, cliente)
 		if OK_send: # Se o histórico de mensagens foi enviado com sucesso
@@ -249,9 +252,7 @@ def fimConexao(con, cliente):
 def main():
 	os.system('clear')
 
-	PORT = str(input('Digite o número de porta em que o servidor TCP irá rodar (default = 50000): '))
-	if (not PORT.isdigit()) or (int(PORT) > 65535) or (int(PORT) < 1024): PORT = '50000'
-	PORT = int(PORT)
+
 
 	server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 

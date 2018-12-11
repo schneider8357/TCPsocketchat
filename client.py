@@ -7,6 +7,7 @@ import getpass
 import time
 
 HOST = '127.0.0.1'
+PORT = 5000
 
 def ajuda():
 	print('-----> Para sair, digite "exit" (sem as aspas)')
@@ -21,7 +22,6 @@ def receber(cliente):
 	print('\nServidor inalcançável.\n')
 	cliente.close()
 	os._exit(0)
-	
 
 def enviar(cliente):
 	msg = ''
@@ -41,17 +41,18 @@ def setLogin(cliente):
 	try:
 		msg = ''
 		while msg != 'OK':
+			if msg: print(msg)
 			login = str(input('Matrícula: '))
 			if not login: login = '\x00'
+			cliente.send(login.encode('utf-8'))
 
 			senha = getpass.getpass('Senha: ')
 			if not senha: senha = '\x00'
 
-			cliente.send(login.encode('utf-8'))
+			
 			cliente.send(senha.encode('utf-8'))
 
 			msg = cliente.recv(1024).decode('utf-8')
-			print(msg)
 		print('Efetuando login. Aguarde um momento...\n')
 		login = cliente.recv(1024).decode('utf-8')
 	except:
@@ -60,7 +61,7 @@ def setLogin(cliente):
 
 def recvMsgs(cliente):
 	num = cliente.recv(1024).decode('utf-8')
-	print(num)
+	print(num, ' mensagens recuperadas!')
 	for i in range(int(num)):
 		print(cliente.recv(1024).decode('utf-8'))
 		time.sleep(0.2)
@@ -68,10 +69,6 @@ def recvMsgs(cliente):
 #MAIN
 def main():
 	os.system('clear')
-
-	PORT = str(input('Digite o número de porta em que o cliente TCP irá rodar (default = 50000): '))
-	if (not PORT.isdigit()) or (int(PORT) > 65535) or (int(PORT) < 1024): PORT = '50000'
-	PORT = int(PORT)
 
 	cliente = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
