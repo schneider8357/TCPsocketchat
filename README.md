@@ -1,6 +1,6 @@
 # TCPsocketchat
 
-Esse foi um trabalho realizado na disciplina `Programação para Redes` do curso
+Esse foi um trabalho realizado na disciplina `Programação para Redes` do segundo período (2018.2) do curso
 superior de `Tecnologia em Redes de Computadores` no IFRN (Campus CNAT).
 
 O objetivo do trabalho foi implementar um servidor e um cliente de um chat, no qual
